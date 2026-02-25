@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StarVote — Stellar Live Poll DApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050812;
+    --surface: #0b1120;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --glow: 0 0 40px rgba(0, 212, 255, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb1 { width: 400px; height: 400px; background: rgba(0,212,255,0.06); top: -100px; right: -100px; }
+  .orb2 { width: 300px; height: 300px; background: rgba(124,58,237,0.08); bottom: 100px; left: -50px; }
+
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    background: rgba(5,8,18,0.8);
+  }
+
+  .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .network-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 11px; color: var(--green);
+  }
+  .network-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  .app {
+    position: relative; z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-body { padding: 20px 24px; }
+
+  .wallet-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .wallet-btn {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    width: 100%;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wallet-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .wallet-btn:hover { border-color: var(--accent); transform: translateX(3px); }
+  .wallet-btn:hover::before { opacity: 0.05; }
+
+  .wallet-btn.active {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.05);
+  }
+
+  .wallet-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    position: relative; z-index: 1;
+  }
+  .wallet-name { font-weight: 700; position: relative; z-index: 1; }
+  .wallet-status { font-size: 10px; color: var(--muted); position: relative; z-index: 1; }
+  .wallet-check {
+    margin-left: auto; color: var(--accent);
+    font-size: 16px; position: relative; z-index: 1;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .wallet-btn.active .wallet-check { opacity: 1; }
+
+  .account-card {
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.1));
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .account-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .account-address { font-size: 12px; color: var(--accent); word-break: break-all; line-height: 1.5; }
+  .account-balance { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .balance-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+  .balance-unit { font-size: 11px; color: var(--muted); }
+
+  .error-toast {
+    display: none;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-left: 3px solid var(--red);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: #fca5a5;
+    animation: slideIn 0.3s ease;
+  }
+  .error-toast.show { display: block; }
+
+  .error-icon { font-size: 14px; margin-right: 6px; }
+  .error-type { font-weight: 700; color: var(--red); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .contract-info { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 11px; }
+  .info-key { color: var(--muted); }
+  .info-val { color: var(--accent); font-size: 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+  .copy-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; transition: color 0.2s; }
+  .copy-btn:hover { color: var(--accent); }
+
+  .poll-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .poll-question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .poll-question-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .poll-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  .live-dot { width: 8px; height: 8px; background: var(--red); border-radius: 50%; animation: pulse 1.5s infinite; }
+
+  .poll-question { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1.3; margin-bottom: 8px; }
+
+  .poll-meta { font-size: 11px; color: var(--muted); display: flex; gap: 20px; margin-top: 12px; }
+  .poll-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .vote-options { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+
+  .vote-option {
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .vote-option:hover { border-color: rgba(0,212,255,0.4); }
+  .vote-option.selected { border-color: var(--accent); }
+  .vote-option.voted { cursor: default; }
+
+  .vote-bar {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04));
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .vote-option.selected .vote-bar {
+    background: linear-gradient(90deg, rgba(0,212,255,0.2), rgba(0,212,255,0.06));
+  }
+
+  .vote-content {
+    position: relative; z-index: 1;
+    display: flex; align-items: center;
+    padding: 16px 20px; gap: 14px;
+  }
+
+  .vote-radio {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .vote-option.selected .vote-radio {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(0,212,255,0.5);
+  }
+
+  .vote-text { font-size: 14px; font-weight: 700; flex: 1; }
+  .vote-pct { font-size: 13px; color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; }
+  .vote-count { font-size: 10px; color: var(--muted); }
+
+  .submit-area { margin-top: 20px; }
+
+  .btn-submit {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    border: none; border-radius: 12px;
+    color: #000; font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-submit::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+  .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,255,0.4); }
+  .btn-submit:hover::before { transform: translateX(100%); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .tx-status { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .tx-list { max-height: 240px; overflow-y: auto; }
+
+  .tx-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+  .tx-item:hover { background: rgba(255,255,255,0.02); }
+  .tx-item:last-child { border-bottom: none; }
+
+  .tx-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .tx-icon.pending { background: rgba(245,158,11,0.15); color: var(--accent3); }
+  .tx-icon.success { background: rgba(16,185,129,0.15); color: var(--green); }
+  .tx-icon.fail { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  .tx-details { flex: 1; min-width: 0; }
+  .tx-hash { font-size: 11px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tx-desc { font-size: 12px; color: var(--text); font-weight: 700; }
+  .tx-time { font-size: 10px; color: var(--muted); }
+
+  .tx-badge {
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .tx-badge.pending { background: rgba(245,158,11,0.15); color: var(--accent3); border: 1px solid rgba(245,158,11,0.3); }
+  .tx-badge.success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .tx-badge.fail { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .event-feed { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+
+  .events-list { max-height: 180px; overflow-y: auto; font-size: 11px; font-family: 'Space Mono', monospace; }
+
+  .event-line {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 24px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    animation: slideIn 0.3s ease;
+  }
+  .event-time { color: var(--muted); flex-shrink: 0; }
+  .event-type { 
+    padding: 1px 6px; border-radius: 4px; 
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .event-type.vote { background: rgba(0,212,255,0.1); color: var(--accent); }
+  .event-type.contract { background: rgba(124,58,237,0.1); color: #a78bfa; }
+  .event-type.wallet { background: rgba(16,185,129,0.1); color: var(--green); }
+  .event-msg { color: var(--text); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(0,212,255,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  .btn-disconnect {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px; border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; cursor: pointer;
+    transition: all 0.2s; margin-top: 12px; width: 100%;
+  }
+  .btn-disconnect:hover { border-color: var(--red); color: var(--red); }
+
+  .results-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .chart-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
+
+  .chart-bar-wrap { margin-bottom: 16px; }
+  .chart-label { 
+    display: flex; justify-content: space-between; 
+    font-size: 12px; margin-bottom: 6px;
+    color: var(--muted);
+  }
+  .chart-label span:last-child { color: var(--text); font-weight: 700; }
+  .chart-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .chart-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  }
+  .chart-fill.a { background: linear-gradient(90deg, var(--accent), #7dd3fc); }
+  .chart-fill.b { background: linear-gradient(90deg, var(--accent2), #c084fc); }
+  .chart-fill.c { background: linear-gradient(90deg, var(--accent3), #fde68a); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .connect-prompt { text-align: center; padding: 32px 20px; }
+  .connect-prompt .big { font-family: 'Syne', sans-serif; font-size: 32px; margin-bottom: 8px; }
+  .connect-prompt p { font-size: 12px; color: var(--muted); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    .app { padding: 20px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<header>
+  <div class="logo">Star<span>Vote</span></div>
+  <div class="header-right">
+    <div class="network-badge">TESTNET</div>
+    <span id="walletIndicator" style="font-size:12px;color:var(--muted)">Not connected</span>
+  </div>
+</header>
+
+<div class="app">
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    
+    <div class="panel">
+      <div class="panel-header">🔌 Connect Wallet</div>
+      <div class="panel-body">
+        <div class="wallet-list" id="walletList">
+          <button class="wallet-btn" onclick="connectWallet('freighter','🦊')">
+            <div class="wallet-icon" style="background:rgba(255,102,0,0.15)">🦊</div>
+            <div>
+              <div class="wallet-name">Freighter</div>
+              <div class="wallet-status">Most popular Stellar wallet</div>
+            </div>
+            <div class="wallet-check">✓</div>
+          </button>
+          <button class="wallet-btn" onclick="connectWallet('xbull','🐂')">
+            <div class="wallet-icon" style="background:rgba(0,212,255,0.1)">🐂</div>
+            <div>
+              <div class="wallet-name">xBull</div>
+              <div class="wallet-status">Advanced Stellar wallet</div>
+            </div>
+            <div class="wallet-check">✓</div>
+          </button>
+          <button class="wallet-btn" onclick="connectWallet('rabet','💎')">
+            <div class="wallet-icon" style="background:rgba(124,58,237,0.15)">💎</div>
+            <div>
+              <div class="wallet-name">Rabet</div>
+              <div class="wallet-status">Browser extension wallet</div>
+            </div>
+            <div class="wallet-check">✓</div>
+          </button>
+          <button class="wallet-btn" onclick="connectWallet('lobstr','🦞')">
+            <div class="wallet-icon" style="background:rgba(245,158,11,0.1)">🦞</div>
+            <div>
+              <div class="wallet-name">Lobstr</div>
+              <div class="wallet-status">Mobile-friendly wallet</div>
+            </div>
+            <div class="wallet-check">✓</div>
+          </button>
+        </div>
+
+        <div class="error-toast" id="err_notfound">
+          <div><span class="error-icon">🔍</span><span class="error-type">Wallet Not Found</span></div>
+          <div style="margin-top:4px">Extension not installed. <a href="#" style="color:var(--accent)">Install it here →</a></div>
+        </div>
+        <div class="error-toast" id="err_rejected">
+          <div><span class="error-icon">🚫</span><span class="error-type">Connection Rejected</span></div>
+          <div style="margin-top:4px">You declined the connection request. Try again when ready.</div>
+        </div>
+        <div class="error-toast" id="err_balance">
+          <div><span class="error-icon">💸</span><span class="error-type">Insufficient Balance</span></div>
+          <div style="margin-top:4px">Need at least 1 XLM for transaction fees. <a href="#" style="color:var(--accent)">Get testnet XLM →</a></div>
+        </div>
+
+        <div class="account-card hidden" id="accountCard">
+          <div class="account-label">Connected Account</div>
+          <div class="account-address" id="accountAddress">—</div>
+          <div class="account-balance">
+            <div>
+              <div class="balance-val" id="accountBalance">—</div>
+              <div class="balance-unit">XLM</div>
+            </div>
+            <div style="font-size:11px;color:var(--green)">● Active</div>
+          </div>
+          <button class="btn-disconnect" onclick="disconnect()">Disconnect wallet</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📜 Contract Info</div>
+      <div class="panel-body" style="padding-top:14px;">
+        <div class="info-row">
+          <span class="info-key">Contract ID</span>
+          <span style="display:flex;align-items:center;gap:4px">
+            <span class="info-val" id="contractId">CCYUD...7K2M</span>
+            <button class="copy-btn" onclick="copyText('CCYUDN6JWI7AMYGE7GL6EPDUN6ITAAPDUGM4GKXZQ4PK63C6RK5XJ77KS')">⎘</button>
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Network</span>
+          <span class="info-val" style="color:var(--green)">Stellar Testnet</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Horizon URL</span>
+          <span class="info-val">horizon-testnet</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Contract Func</span>
+          <span class="info-val" style="color:#a78bfa">cast_vote()</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Total Votes</span>
+          <span id="totalVoteCount" class="info-val" style="color:var(--text);font-size:14px;font-weight:700">247</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="poll-panel">
+    
+    <div class="poll-question-card">
+      <div class="poll-label"><div class="live-dot"></div> Live Poll</div>
+      <div class="poll-question" id="pollQuestion">What should the Stellar community prioritize in 2025?</div>
+      <div class="poll-meta">
+        <span>🗳️ <span id="voteDisplay">247 votes</span></span>
+        <span>⏱️ 8 days remaining</span>
+        <span>📄 Contract deployed</span>
+      </div>
+
+      <div id="connectPrompt" class="connect-prompt" style="margin-top:16px;border-top:1px solid var(--border);padding-top:24px;">
+        <div class="big">🔗</div>
+        <p>Connect a wallet to cast your vote on-chain</p>
+      </div>
+
+      <div class="vote-options hidden" id="voteOptions">
+        <div class="vote-option" id="opt0" onclick="selectOption(0)">
+          <div class="vote-bar" style="width:45%"></div>
+          <div class="vote-content">
+            <div class="vote-radio"></div>
+            <div class="vote-text">⚡ DeFi & DEX improvements</div>
+            <div>
+              <div class="vote-pct" id="pct0">45%</div>
+              <div class="vote-count" id="cnt0">111 votes</div>
+            </div>
+          </div>
+        </div>
+        <div class="vote-option" id="opt1" onclick="selectOption(1)">
+          <div class="vote-bar" style="width:31%"></div>
+          <div class="vote-content">
+            <div class="vote-radio"></div>
+            <div class="vote-text">🌐 Cross-chain bridges</div>
+            <div>
+              <div class="vote-pct" id="pct1">31%</div>
+              <div class="vote-count" id="cnt1">77 votes</div>
+            </div>
+          </div>
+        </div>
+        <div class="vote-option" id="opt2" onclick="selectOption(2)">
+          <div class="vote-bar" style="width:24%"></div>
+          <div class="vote-content">
+            <div class="vote-radio"></div>
+            <div class="vote-text">📱 Mobile wallet UX</div>
+            <div>
+              <div class="vote-pct" id="pct2">24%</div>
+              <div class="vote-count" id="cnt2">59 votes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-area hidden" id="submitArea">
+        <button class="btn-submit" id="submitBtn" onclick="castVote()" disabled>
+          Select an option to vote
+        </button>
+      </div>
+    </div>
+
+    <div class="results-chart" id="resultsChart">
+      <div class="chart-title">📊 Live Results</div>
+      <div class="chart-bar-wrap">
+        <div class="chart-label"><span>⚡ DeFi & DEX improvements</span><span id="chartPct0">45%</span></div>
+        <div class="chart-track"><div class="chart-fill a" id="chartBar0" style="width:45%"></div></div>
+      </div>
+      <div class="chart-bar-wrap">
+        <div class="chart-label"><span>🌐 Cross-chain bridges</span><span id="chartPct1">31%</span></div>
+        <div class="chart-track"><div class="chart-fill b" id="chartBar1" style="width:31%"></div></div>
+      </div>
+      <div class="chart-bar-wrap">
+        <div class="chart-label"><span>📱 Mobile wallet UX</span><span id="chartPct2">24%</span></div>
+        <div class="chart-track"><div class="chart-fill c" id="chartBar2" style="width:24%"></div></div>
+      </div>
+    </div>
+
+    <div class="tx-status">
+      <div class="panel-header" style="padding:16px 24px">⚡ Transaction Status</div>
+      <div class="tx-list" id="txList">
+        <div class="tx-item">
+          <div class="tx-icon success">✓</div>
+          <div class="tx-details">
+            <div class="tx-desc">cast_vote(option: 0)</div>
+            <div class="tx-hash">a7f3c2e1b4d8...9k2m</div>
+            <div class="tx-time">2 mins ago</div>
+          </div>
+          <div class="tx-badge success">success</div>
+        </div>
+        <div class="tx-item">
+          <div class="tx-icon success">✓</div>
+          <div class="tx-details">
+            <div class="tx-desc">cast_vote(option: 2)</div>
+            <div class="tx-hash">b9e4d7a2c1f5...3x8n</div>
+            <div class="tx-time">5 mins ago</div>
+          </div>
+          <div class="tx-badge success">success</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event-feed">
+      <div class="panel-header" style="padding:16px 24px">📡 Live Event Feed</div>
+      <div class="events-list" id="eventList">
+        <div class="event-line">
+          <span class="event-time">12:04:31</span>
+          <span class="event-type contract">contract</span>
+          <span class="event-msg">VoteCast event: option=0, voter=GABCD...7K</span>
+        </div>
+        <div class="event-line">
+          <span class="event-time">12:03:18</span>
+          <span class="event-type vote">vote</span>
+          <span class="event-msg">New vote counted. Total: 247</span>
+        </div>
+        <div class="event-line">
+          <span class="event-time">12:01:55</span>
+          <span class="event-type wallet">wallet</span>
+          <span class="event-msg">Wallet connected via Freighter</span>
+        </div>
+        <div class="event-line">
+          <span class="event-time">11:59:22</span>
+          <span class="event-type contract">contract</span>
+          <span class="event-msg">Contract initialized on Testnet</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let state = {
+    connected: false,
+    wallet: null,
+    address: null,
+    balance: 0,
+    selectedOption: null,
+    hasVoted: false,
+    votes: [111, 77, 59],
+    txCount: 2
+  };
+
+  async function connectWallet(type, icon) {
+    hideAllErrors();
+    addEvent('wallet', `Connecting to ${type}...`);
+    await sleep(800);
+
+    if (type === 'lobstr' && Math.random() > 0.5) {
+      showError('notfound'); addEvent('wallet', 'Error: Wallet extension not found'); return;
+    }
+    if (type === 'rabet' && Math.random() > 0.5) {
+      showError('rejected'); addEvent('wallet', 'Error: User rejected connection'); return;
+    }
+
+    const mockBalance = type === 'xbull' ? 0.5 : (40 + Math.floor(Math.random() * 200));
+
+    if (mockBalance < 1) {
+      showError('balance'); addEvent('wallet', 'Error: Insufficient balance for fees'); return;
+    }
+
+    const mockAddress = generateAddress();
+    state.connected = true;
+    state.wallet = type;
+    state.address = mockAddress;
+    state.balance = mockBalance;
+
+    updateWalletUI(type, mockAddress, mockBalance);
+    addEvent('wallet', `Connected: ${mockAddress.slice(0,8)}...via ${type}`);
+    showVoteUI();
+    updateTxStatus({ type: 'wallet', desc: 'Wallet connected', status: 'success' });
+  }
+
+  function updateWalletUI(type, address, balance) {
+    document.querySelectorAll('.wallet-btn').forEach(b => b.classList.remove('active'));
+    const btns = document.querySelectorAll('.wallet-btn');
+    const names = ['freighter','xbull','rabet','lobstr'];
+    btns[names.indexOf(type)]?.classList.add('active');
+
+    document.getElementById('accountCard').classList.remove('hidden');
+    document.getElementById('accountAddress').textContent = address;
+    document.getElementById('accountBalance').textContent = balance.toFixed(2);
+    document.getElementById('walletIndicator').textContent = `${type} ●`;
+    document.getElementById('walletIndicator').style.color = 'var(--green)';
+  }
+
+  function showVoteUI() {
+    document.getElementById('connectPrompt').classList.add('hidden');
+    document.getElementById('voteOptions').classList.remove('hidden');
+    document.getElementById('submitArea').classList.remove('hidden');
+  }
+
+  function selectOption(idx) {
+    if (state.hasVoted) return;
+    state.selectedOption = idx;
+
+    document.querySelectorAll('.vote-option').forEach((el, i) => {
+      el.classList.toggle('selected', i === idx);
+    });
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    btn.textContent = `Cast Vote → Option ${idx + 1}`;
+  }
+
+  async function castVote() {
+    if (!state.connected || state.selectedOption === null || state.hasVoted) return;
+    
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Signing transaction...';
+
+    const fakeTxHash = generateTxHash();
+    updateTxStatus({ type: 'vote', desc: `cast_vote(option: ${state.selectedOption})`, status: 'pending', hash: fakeTxHash });
+    addEvent('contract', `Submitting cast_vote(${state.selectedOption}) to Testnet...`);
+
+    await sleep(1200);
+
+    btn.innerHTML = '<span class="spinner"></span>Confirming on Stellar...';
+    await sleep(1000);
+
+    const success = Math.random() > 0.1;
+
+    if (!success) {
+      btn.disabled = false;
+      btn.textContent = 'Retry vote';
+      updateTxStatus({ type: 'vote', desc: `cast_vote(option: ${state.selectedOption})`, status: 'fail', hash: fakeTxHash });
+      addEvent('contract', 'Transaction failed: contract execution error');
+      return;
+    }
+
+    state.votes[state.selectedOption]++;
+    state.hasVoted = true;
+    updateResults();
+
+    updateTxStatus({ type: 'vote', desc: `cast_vote(option: ${state.selectedOption})`, status: 'success', hash: fakeTxHash });
+    addEvent('vote', `VoteCast: option=${state.selectedOption}, total=${state.votes.reduce((a,b)=>a+b,0)}`);
+    addEvent('contract', `VoteCast event emitted, hash: ${fakeTxHash.slice(0,16)}...`);
+
+    btn.innerHTML = '✓ Vote cast on-chain!';
+    btn.style.background = 'linear-gradient(135deg, var(--green), #059669)';
+
+    document.querySelectorAll('.vote-option').forEach(el => el.classList.add('voted'));
+  }
+
+  function updateResults() {
+    const total = state.votes.reduce((a, b) => a + b, 0);
+    state.votes.forEach((v, i) => {
+      const pct = Math.round((v / total) * 100);
+      document.getElementById(`pct${i}`).textContent = pct + '%';
+      document.getElementById(`cnt${i}`).textContent = v + ' votes';
+      document.querySelector(`#opt${i} .vote-bar`).style.width = pct + '%';
+      document.getElementById(`chartPct${i}`).textContent = pct + '%';
+      document.getElementById(`chartBar${i}`).style.width = pct + '%';
+    });
+    document.getElementById('voteDisplay').textContent = total + ' votes';
+    document.getElementById('totalVoteCount').textContent = total;
+  }
+
+  function updateTxStatus({ type, desc, status, hash }) {
+    const icons = { pending: '⏳', success: '✓', fail: '✗', wallet: '🔌' };
+    const displayHash = hash ? hash.slice(0,12) + '...' + hash.slice(-4) : '—';
+    const item = document.createElement('div');
+    item.className = 'tx-item';
+    item.innerHTML = `
+      <div class="tx-icon ${status}">${icons[status] || '·'}</div>
+      <div class="tx-details">
+        <div class="tx-desc">${desc}</div>
+        <div class="tx-hash">${displayHash}</div>
+        <div class="tx-time">just now</div>
+      </div>
+      <div class="tx-badge ${status}">${status}</div>
+    `;
+    const list = document.getElementById('txList');
+    list.insertBefore(item, list.firstChild);
+    if (list.children.length > 8) list.removeChild(list.lastChild);
+
+    if (status === 'pending') {
+      setTimeout(() => {
+        item.querySelector('.tx-icon').textContent = '✓';
+        item.querySelector('.tx-icon').className = 'tx-icon success';
+        item.querySelector('.tx-badge').textContent = 'success';
+        item.querySelector('.tx-badge').className = 'tx-badge success';
+      }, 2200);
+    }
+  }
+
+  function addEvent(type, msg) {
+    const now = new Date();
+    const time = now.toTimeString().slice(0,8);
+    const el = document.createElement('div');
+    el.className = 'event-line';
+    el.innerHTML = `
+      <span class="event-time">${time}</span>
+      <span class="event-type ${type}">${type}</span>
+      <span class="event-msg">${msg}</span>
+    `;
+    const list = document.getElementById('eventList');
+    list.insertBefore(el, list.firstChild);
+    if (list.children.length > 20) list.removeChild(list.lastChild);
+  }
+
+  function disconnect() {
+    state.connected = false;
+    state.wallet = null;
+    state.selectedOption = null;
+
+    document.querySelectorAll('.wallet-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('accountCard').classList.add('hidden');
+    document.getElementById('walletIndicator').textContent = 'Not connected';
+    document.getElementById('walletIndicator').style.color = 'var(--muted)';
+    document.getElementById('voteOptions').classList.add('hidden');
+    document.getElementById('submitArea').classList.add('hidden');
+    document.getElementById('connectPrompt').classList.remove('hidden');
+    hideAllErrors();
+    addEvent('wallet', 'Wallet disconnected');
+  }
+
+  function showError(type) {
+    hideAllErrors();
+    document.getElementById(`err_${type}`).classList.add('show');
+    setTimeout(() => document.getElementById(`err_${type}`).classList.remove('show'), 5000);
+  }
+
+  function hideAllErrors() {
+    ['notfound','rejected','balance'].forEach(t => {
+      document.getElementById(`err_${t}`).classList.remove('show');
+    });
+  }
+
+  function copyText(text) {
+    navigator.clipboard?.writeText(text);
+    addEvent('contract', 'Contract address copied to clipboard');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function generateAddress() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    return 'G' + Array.from({length: 55}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
+  function generateTxHash() {
+    return Array.from({length: 64}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+  }
+
+  function simulateLiveVotes() {
+    setInterval(() => {
+      if (Math.random() > 0.7) {
+        const optIdx = Math.floor(Math.random() * 3);
+        state.votes[optIdx]++;
+        updateResults();
+        addEvent('vote', `Remote vote counted: option=${optIdx}, voter=G${Math.random().toString(36).slice(2,8).toUpperCase()}...`);
+      }
+    }, 4000);
+  }
+
+  simulateLiveVotes();
+</script>
+</body>
+</html>
