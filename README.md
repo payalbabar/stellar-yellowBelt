@@ -42,6 +42,22 @@ https://stellar.expert/explorer/testnet/tx/9b220fbf5e2c268403830452d08d1de3e5586
 
 **Status**: ✅ Success  
 
+##screenshot:
+![transaction_status](https://github.com/user-attachments/assets/0bc2d9c1-20d4-4cd0-919e-0b6e521692b6)
+![transaction_status](https://github.com/user-attachments/assets/39a7101b-27a7-4f15-80ab-135a707e47d0)
+![walletconnected](https://github.com/user-attachments/assets/f7794528-d12a-4528-af6a-f532154aa7ad)
+![error-connection-rejected](https://github.com/user-attachments/assets/84bcc1de-1330-4b87-b2f5-1ebbc3b25db6)
+![error-insufficient-balance](https://github.com/user-attachments/assets/a429304c-98e5-428d-9f4e-09b3f0dd9437)
+![wallet-connected](https://github.com/user-attachments/assets/864a64f4-4acb-4a5e-ba71-664df3baea68)
+
+
+
+
+
+
+
+
+
 ## 🛠️ Setup & Development
 
 ### Prerequisites
