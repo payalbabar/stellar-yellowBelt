@@ -75,14 +75,8 @@ npm run dev
 - [x] 2+ meaningful Git commits
 - [x] README with contract address and proof
 
-## 🖼️ Screenshots
 
-![Wallet Options](Screenshot-livePoll/wallet-connected.jpeg)
-*Wallet connected demonstrating available options.*
 
-## 🔗 Live Demo
-
-*Optional: [Your deployed demo link here](https://your-demo-url.example.com)*
 
 ## 🎯 Git Commits
 
